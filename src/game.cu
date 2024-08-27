@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
+#include <time.h>
 
 #define ROWS 6
 #define COLUMNS 7
@@ -9,15 +10,15 @@
 // Kernel for Player 1: Random Strategy
 __global__ void randomMove(int *board, int player)
 {
-    int col = threadIdx.x % COLUMNS; // Safe guarding against out-of-bounds
+    int col = threadIdx.x % COLUMNS;
     if (board[col * ROWS] == 0)
-    {
+    { // Check if the top of the column is empty
         for (int i = ROWS - 1; i >= 0; i--)
         {
             if (board[col * ROWS + i] == 0)
             {
                 board[col * ROWS + i] = player;
-                break;
+                return;
             }
         }
     }
@@ -27,14 +28,66 @@ __global__ void randomMove(int *board, int player)
 __global__ void lookaheadMove(int *board, int player)
 {
     int col = threadIdx.x % COLUMNS;
-    // Add more sophisticated logic for lookahead here
+    // Simple block or win strategy would be implemented here
 }
 
-// Check for a win condition
-bool checkWin(int *board)
+// Check for a win condition, returns true if player wins
+bool checkWin(int *board, int player)
 {
-    // Check horizontally, vertically, and diagonally
-    return false; // Add real check logic here
+    // Horizontal check
+    for (int row = 0; row < ROWS; row++)
+    {
+        for (int col = 0; col < COLUMNS - 3; col++)
+        {
+            if (board[col * ROWS + row] == player && board[(col + 1) * ROWS + row] == player &&
+                board[(col + 2) * ROWS + row] == player && board[(col + 3) * ROWS + row] == player)
+            {
+                return true;
+            }
+        }
+    }
+
+    // Vertical check
+    for (int col = 0; col < COLUMNS; col++)
+    {
+        for (int row = 0; row < ROWS - 3; row++)
+        {
+            if (board[col * ROWS + row] == player && board[col * ROWS + (row + 1)] == player &&
+                board[col * ROWS + (row + 2)] == player && board[col * ROWS + (row + 3)] == player)
+            {
+                return true;
+            }
+        }
+    }
+
+    // Diagonal checks
+    // Diagonal down-right
+    for (int row = 0; row < ROWS - 3; row++)
+    {
+        for (int col = 0; col < COLUMNS - 3; col++)
+        {
+            if (board[col * ROWS + row] == player && board[(col + 1) * ROWS + (row + 1)] == player &&
+                board[(col + 2) * ROWS + (row + 2)] == player && board[(col + 3) * ROWS + (row + 3)] == player)
+            {
+                return true;
+            }
+        }
+    }
+
+    // Diagonal down-left
+    for (int row = 0; row < ROWS - 3; row++)
+    {
+        for (int col = 3; col < COLUMNS; col++)
+        {
+            if (board[col * ROWS + row] == player && board[(col - 1) * ROWS + (row + 1)] == player &&
+                board[(col - 2) * ROWS + (row + 2)] == player && board[(col - 3) * ROWS + (row + 3)] == player)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 // Display the board state
@@ -71,7 +124,7 @@ int main()
     memset(board, 0, ROWS * COLUMNS * sizeof(int));
 
     int currentPlayer = 1;
-    while (!checkWin(board))
+    while (true)
     {
         if (currentPlayer == 1)
         {
@@ -83,10 +136,16 @@ int main()
         }
         cudaDeviceSynchronize();
         printBoard(board);
+
+        if (checkWin(board, currentPlayer))
+        {
+            printf("Player %d wins!\n", currentPlayer);
+            break;
+        }
+
         currentPlayer = 3 - currentPlayer; // Toggle between player 1 and 2
     }
 
     cudaFree(board);
     return 0;
 }
-
