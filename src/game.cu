@@ -89,3 +89,4 @@ int main()
     cudaFree(board);
     return 0;
 }
+
