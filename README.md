@@ -6,7 +6,8 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## 📖 Project Description
-This project implements a **CUDA-based Tic-Tac-Toe game** where two AI players compete using different strategies. The game leverages NVIDIA GPUs for parallel computation, demonstrating simple AI-driven gameplay.
+
+This project implements a **CUDA-based Tic-Tac-Toe game** where two players use predefined strategies to compete. The game leverages NVIDIA GPUs for parallel computation, showcasing basic strategy-driven gameplay.
 
 ## 📑 Table of Contents
 - [Project Description](#-project-description)
