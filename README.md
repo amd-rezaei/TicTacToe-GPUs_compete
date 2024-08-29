@@ -9,16 +9,17 @@
 This project implements a **CUDA-based Tic-Tac-Toe game** where two AI players compete using different strategies. The game leverages NVIDIA GPUs for parallel computation, demonstrating simple AI-driven gameplay.
 
 ## 📑 Table of Contents
-- [Project Description](#project-description)
-- [Getting Started](#getting-started)
-- [Compilation](#compilation)
-- [Execution](#execution)
-- [Example Output](#example-output)
-- [Customization](#customization)
-- [Known Issues](#known-issues)
-- [Debugging](#debugging)
-- [Author](#author)
-- [License](#license)
+- [Project Description](#-project-description)
+- [Getting Started](#-getting-started)
+- [Compilation](#-compilation)
+- [Execution](#-execution)
+- [Example Output](#-example-output)
+- [Customization](#-customization)
+- [Known Issues](#-known-issues)
+- [Debugging](#-debugging)
+- [Author](#-author)
+- [License](#-license)
+
 
 ## 🚀 Getting Started
 
