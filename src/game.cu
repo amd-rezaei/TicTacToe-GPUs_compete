@@ -8,141 +8,120 @@
 #define COLUMNS 3
 
 // Kernel for Player 1: Random Strategy
-__global__ void randomMove(int *board, int player)
+__global__ void randomMove(int *board, int player, unsigned long long seed)
 {
-    int col = threadIdx.x % COLUMNS;
-    if (board[col * ROWS] == 0)
-    { // Check if the top of the column is empty
-        for (int i = ROWS - 1; i >= 0; i--)
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0)
+    {
+        curandState_t state;
+        curand_init(seed, idx, 0, &state);
+
+        int col = curand(&state) % COLUMNS; // Random column
+        while (true)
         {
-            if (board[col * ROWS + i] == 0)
-            {
-                board[col * ROWS + i] = player;
-                return;
+            if (board[col * ROWS] == 0)
+            { // Check if the top of the column is empty
+                for (int i = ROWS - 1; i >= 0; i--)
+                {
+                    if (board[col * ROWS + i] == 0)
+                    {
+                        board[col * ROWS + i] = player;
+                        return;
+                    }
+                }
             }
+            // Move to the next column
+            col = (col + 1) % COLUMNS;
         }
     }
 }
 
+// Kernel for Player 2: Lookahead Strategy
 __global__ void lookaheadMove(int *board, int player)
 {
-    int col = threadIdx.x % COLUMNS;
-
-    // Simulate the opponent's move (Player 1)
-    int opponent = 3 - player;
-
-    // Check if the opponent can win by placing a piece in the current column
-    for (int i = ROWS - 1; i >= 0; i--)
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0)
     {
-        if (board[col * ROWS + i] == 0)
+        int opponent = 3 - player;
+
+        for (int col = 0; col < COLUMNS; col++)
         {
-            // Temporarily place the opponent's piece in this column
-            board[col * ROWS + i] = opponent;
-
-            // Inline win check
-            bool win = false;
-
-            // Horizontal check
-            for (int row = 0; row < ROWS; row++)
+            for (int i = ROWS - 1; i >= 0; i--)
             {
-                int count = 0;
-                for (int j = 0; j < COLUMNS; j++)
+                if (board[col * ROWS + i] == 0)
                 {
-                    if (board[j * ROWS + row] == opponent)
-                        count++;
-                    else
-                        count = 0;
-                    if (count == 4)
+                    board[col * ROWS + i] = opponent;
+
+                    bool win = false;
+
+                    // Horizontal check
+                    for (int row = 0; row < ROWS; row++)
+                    {
+                        if (board[row * COLUMNS] == opponent &&
+                            board[row * COLUMNS + 1] == opponent &&
+                            board[row * COLUMNS + 2] == opponent)
+                        {
+                            win = true;
+                        }
+                    }
+
+                    // Vertical check
+                    for (int colcnt = 0; colcnt < COLUMNS; colcnt++)
+                    {
+                        if (board[colcnt] == opponent &&
+                            board[colcnt + COLUMNS] == opponent &&
+                            board[colcnt + 2 * COLUMNS] == opponent)
+                        {
+                            win = true;
+                        }
+                    }
+
+                    // Diagonal check (top-left to bottom-right)
+                    if (board[0] == opponent &&
+                        board[4] == opponent &&
+                        board[8] == opponent)
                     {
                         win = true;
-                        break;
                     }
-                }
-                if (win)
-                    break;
-            }
 
-            // Vertical check
-            for (int j = 0; j < COLUMNS; j++)
-            {
-                int count = 0;
-                for (int row = 0; row < ROWS; row++)
-                {
-                    if (board[j * ROWS + row] == opponent)
-                        count++;
-                    else
-                        count = 0;
-                    if (count == 4)
+                    // Diagonal check (top-right to bottom-left)
+                    if (board[2] == opponent &&
+                        board[4] == opponent &&
+                        board[6] == opponent)
                     {
                         win = true;
-                        break;
                     }
-                }
-                if (win)
-                    break;
-            }
 
-            // Diagonal checks (down-right and down-left)
-            for (int row = 0; row < ROWS - 3; row++)
-            {
-                for (int j = 0; j < COLUMNS - 3; j++)
-                {
-                    if (board[j * ROWS + row] == opponent &&
-                        board[(j + 1) * ROWS + (row + 1)] == opponent &&
-                        board[(j + 2) * ROWS + (row + 2)] == opponent &&
-                        board[(j + 3) * ROWS + (row + 3)] == opponent)
+                    if (win)
                     {
-                        win = true;
-                        break;
+                        board[col * ROWS + i] = player;
+                        return;
                     }
-                }
-                if (win)
+
+                    board[col * ROWS + i] = 0;
                     break;
-            }
-
-            for (int row = 0; row < ROWS - 3; row++)
-            {
-                for (int j = 3; j < COLUMNS; j++)
-                {
-                    if (board[j * ROWS + row] == opponent &&
-                        board[(j - 1) * ROWS + (row + 1)] == opponent &&
-                        board[(j - 2) * ROWS + (row + 2)] == opponent &&
-                        board[(j - 3) * ROWS + (row + 3)] == opponent)
-                    {
-                        win = true;
-                        break;
-                    }
                 }
-                if (win)
-                    break;
             }
-
-            // If the opponent would win, place the current player's piece here to block
-            if (win)
-            {
-                board[col * ROWS + i] = player;
-                return;
-            }
-
-            // Revert the temporary move
-            board[col * ROWS + i] = 0;
-            break; // Stop checking further rows in this column
         }
-    }
 
-    // If no winning move to block, make a random move (fallback)
-    if (board[col * ROWS] == 0)
-    { // Check if the top of the column is empty
-        for (int i = ROWS - 1; i >= 0; i--)
+        // If no winning move to block, make a random move
+        for (int col = 0; col < COLUMNS; col++)
         {
-            if (board[col * ROWS + i] == 0)
+            if (board[col * ROWS] == 0)
             {
-                board[col * ROWS + i] = player;
-                return;
+                for (int i = ROWS - 1; i >= 0; i--)
+                {
+                    if (board[col * ROWS + i] == 0)
+                    {
+                        board[col * ROWS + i] = player;
+                        return;
+                    }
+                }
             }
         }
     }
 }
+
 
 // Check for a win condition, returns true if player wins
 bool checkWin(int *board, int player)
@@ -150,54 +129,39 @@ bool checkWin(int *board, int player)
     // Horizontal check
     for (int row = 0; row < ROWS; row++)
     {
-        for (int col = 0; col < COLUMNS - 3; col++)
+        if (board[row * COLUMNS] == player &&
+            board[row * COLUMNS + 1] == player &&
+            board[row * COLUMNS + 2] == player)
         {
-            if (board[col * ROWS + row] == player && board[(col + 1) * ROWS + row] == player &&
-                board[(col + 2) * ROWS + row] == player && board[(col + 3) * ROWS + row] == player)
-            {
-                return true;
-            }
+            return true;
         }
     }
 
     // Vertical check
     for (int col = 0; col < COLUMNS; col++)
     {
-        for (int row = 0; row < ROWS - 3; row++)
+        if (board[col] == player &&
+            board[col + COLUMNS] == player &&
+            board[col + 2 * COLUMNS] == player)
         {
-            if (board[col * ROWS + row] == player && board[col * ROWS + (row + 1)] == player &&
-                board[col * ROWS + (row + 2)] == player && board[col * ROWS + (row + 3)] == player)
-            {
-                return true;
-            }
+            return true;
         }
     }
 
-    // Diagonal checks
-    // Diagonal down-right
-    for (int row = 0; row < ROWS - 3; row++)
+    // Diagonal check (top-left to bottom-right)
+    if (board[0] == player &&
+        board[4] == player &&
+        board[8] == player)
     {
-        for (int col = 0; col < COLUMNS - 3; col++)
-        {
-            if (board[col * ROWS + row] == player && board[(col + 1) * ROWS + (row + 1)] == player &&
-                board[(col + 2) * ROWS + (row + 2)] == player && board[(col + 3) * ROWS + (row + 3)] == player)
-            {
-                return true;
-            }
-        }
+        return true;
     }
 
-    // Diagonal down-left
-    for (int row = 0; row < ROWS - 3; row++)
+    // Diagonal check (top-right to bottom-left)
+    if (board[2] == player &&
+        board[4] == player &&
+        board[6] == player)
     {
-        for (int col = 3; col < COLUMNS; col++)
-        {
-            if (board[col * ROWS + row] == player && board[(col - 1) * ROWS + (row + 1)] == player &&
-                board[(col - 2) * ROWS + (row + 2)] == player && board[(col - 3) * ROWS + (row + 3)] == player)
-            {
-                return true;
-            }
-        }
+        return true;
     }
 
     return false;
@@ -210,11 +174,12 @@ void printBoard(int *board)
     {
         for (int j = 0; j < COLUMNS; j++)
         {
-            int token = board[j * ROWS + i];
+            int token = board[i * COLUMNS + j];
             printf("%c ", (token == 0) ? '.' : (token == 1 ? 'X' : 'O'));
         }
         printf("\n");
     }
+    printf("\n");
 }
 
 int main()
@@ -236,33 +201,36 @@ int main()
     cudaMallocManaged(&board, ROWS * COLUMNS * sizeof(int));
     memset(board, 0, ROWS * COLUMNS * sizeof(int));
 
-    int maxRounds = ROWS * COLUMNS; // Maximum number of moves (6 rows * 7 columns)
+    int maxRounds = ROWS * COLUMNS; // Maximum number of moves (3 rows * 3 columns)
     int round = 0;
     int currentPlayer = 1;
+
     while (true)
     {
         if (currentPlayer == 1)
         {
-            
-            randomMove<<<1, COLUMNS>>>(board, currentPlayer);
+            randomMove<<<1, 1>>>(board, currentPlayer, time(NULL)); // Single thread
+            cudaDeviceSynchronize();
+            printBoard(board);
+            if (checkWin(board, currentPlayer))
+            {
+                printf("Player %d wins!\n", currentPlayer);
+                break;
+            }
             currentPlayer = 2;
         }
         else
         {
-            
-            lookaheadMove<<<1, COLUMNS>>>(board, currentPlayer);
+            lookaheadMove<<<1, 1>>>(board, currentPlayer); // Single thread
+            cudaDeviceSynchronize();
+            printBoard(board);
+            if (checkWin(board, currentPlayer))
+            {
+                printf("Player %d wins!\n", currentPlayer);
+                break;
+            }
             currentPlayer = 1;
         }
-        cudaDeviceSynchronize();
-        printBoard(board);
-
-        if (checkWin(board, currentPlayer))
-        {
-            printf("Player %d wins!\n", currentPlayer);
-            break;
-        }
-
-        currentPlayer = 3 - currentPlayer; // Toggle between player 1 and 2
 
         round++;
         if (round >= maxRounds)
