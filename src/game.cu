@@ -140,19 +140,17 @@ void printBoard(const int *board, int rows, int columns)
     printf("\n");
 }
 
-// Enhanced win check function
 bool checkWin(const int *board, int player, int rows, int columns)
 {
-    int horizontalWin = rows;  // Win condition for horizontal and diagonal checks
-    int verticalWin = columns; // Win condition for vertical checks
+    int winCondition = rows; // Set win condition to the number of rows for all checks
 
     // Horizontal check
     for (int row = 0; row < rows; row++)
     {
-        for (int col = 0; col <= columns - horizontalWin; col++)
+        for (int col = 0; col <= columns - winCondition; col++)
         {
             bool win = true;
-            for (int k = 0; k < horizontalWin; k++)
+            for (int k = 0; k < winCondition; k++)
             {
                 if (board[row * columns + col + k] != player)
                 {
@@ -161,17 +159,20 @@ bool checkWin(const int *board, int player, int rows, int columns)
                 }
             }
             if (win)
+            {
+                printf("Player %d wins with a horizontal line starting at row %d, column %d\n", player, row, col);
                 return true;
+            }
         }
     }
 
     // Vertical check
     for (int col = 0; col < columns; col++)
     {
-        for (int row = 0; row <= rows - verticalWin; row++)
+        for (int row = 0; row <= rows - winCondition; row++)
         {
             bool win = true;
-            for (int k = 0; k < verticalWin; k++)
+            for (int k = 0; k < winCondition; k++)
             {
                 if (board[(row + k) * columns + col] != player)
                 {
@@ -180,17 +181,20 @@ bool checkWin(const int *board, int player, int rows, int columns)
                 }
             }
             if (win)
+            {
+                printf("Player %d wins with a vertical line starting at row %d, column %d\n", player, row, col);
                 return true;
+            }
         }
     }
 
     // Diagonal check (top-left to bottom-right)
-    for (int row = 0; row <= rows - horizontalWin; row++)
+    for (int row = 0; row <= rows - winCondition; row++)
     {
-        for (int col = 0; col <= columns - horizontalWin; col++)
+        for (int col = 0; col <= columns - winCondition; col++)
         {
             bool win = true;
-            for (int k = 0; k < horizontalWin; k++)
+            for (int k = 0; k < winCondition; k++)
             {
                 if (board[(row + k) * columns + col + k] != player)
                 {
@@ -199,17 +203,20 @@ bool checkWin(const int *board, int player, int rows, int columns)
                 }
             }
             if (win)
+            {
+                printf("Player %d wins with a diagonal (top-left to bottom-right) line starting at row %d, column %d\n", player, row, col);
                 return true;
+            }
         }
     }
 
     // Diagonal check (top-right to bottom-left)
-    for (int row = 0; row <= rows - horizontalWin; row++)
+    for (int row = 0; row <= rows - winCondition; row++)
     {
-        for (int col = horizontalWin - 1; col < columns; col++)
+        for (int col = winCondition - 1; col < columns; col++)
         {
             bool win = true;
-            for (int k = 0; k < horizontalWin; k++)
+            for (int k = 0; k < winCondition; k++)
             {
                 if (board[(row + k) * columns + col - k] != player)
                 {
@@ -218,7 +225,10 @@ bool checkWin(const int *board, int player, int rows, int columns)
                 }
             }
             if (win)
+            {
+                printf("Player %d wins with a diagonal (top-right to bottom-left) line starting at row %d, column %d\n", player, row, col);
                 return true;
+            }
         }
     }
 
