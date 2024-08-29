@@ -4,8 +4,8 @@
 #include <curand_kernel.h>
 #include <time.h>
 
-#define ROWS 6
-#define COLUMNS 7
+#define ROWS 3
+#define COLUMNS 3
 
 // Kernel for Player 1: Random Strategy
 __global__ void randomMove(int *board, int player)
@@ -24,11 +24,124 @@ __global__ void randomMove(int *board, int player)
     }
 }
 
-// Kernel for Player 2: Lookahead Strategy
 __global__ void lookaheadMove(int *board, int player)
 {
-    // Placeholder for a more complex strategy.
-    // No need to declare 'col' if it's not being used.
+    int col = threadIdx.x % COLUMNS;
+
+    // Simulate the opponent's move (Player 1)
+    int opponent = 3 - player;
+
+    // Check if the opponent can win by placing a piece in the current column
+    for (int i = ROWS - 1; i >= 0; i--)
+    {
+        if (board[col * ROWS + i] == 0)
+        {
+            // Temporarily place the opponent's piece in this column
+            board[col * ROWS + i] = opponent;
+
+            // Inline win check
+            bool win = false;
+
+            // Horizontal check
+            for (int row = 0; row < ROWS; row++)
+            {
+                int count = 0;
+                for (int j = 0; j < COLUMNS; j++)
+                {
+                    if (board[j * ROWS + row] == opponent)
+                        count++;
+                    else
+                        count = 0;
+                    if (count == 4)
+                    {
+                        win = true;
+                        break;
+                    }
+                }
+                if (win)
+                    break;
+            }
+
+            // Vertical check
+            for (int j = 0; j < COLUMNS; j++)
+            {
+                int count = 0;
+                for (int row = 0; row < ROWS; row++)
+                {
+                    if (board[j * ROWS + row] == opponent)
+                        count++;
+                    else
+                        count = 0;
+                    if (count == 4)
+                    {
+                        win = true;
+                        break;
+                    }
+                }
+                if (win)
+                    break;
+            }
+
+            // Diagonal checks (down-right and down-left)
+            for (int row = 0; row < ROWS - 3; row++)
+            {
+                for (int j = 0; j < COLUMNS - 3; j++)
+                {
+                    if (board[j * ROWS + row] == opponent &&
+                        board[(j + 1) * ROWS + (row + 1)] == opponent &&
+                        board[(j + 2) * ROWS + (row + 2)] == opponent &&
+                        board[(j + 3) * ROWS + (row + 3)] == opponent)
+                    {
+                        win = true;
+                        break;
+                    }
+                }
+                if (win)
+                    break;
+            }
+
+            for (int row = 0; row < ROWS - 3; row++)
+            {
+                for (int j = 3; j < COLUMNS; j++)
+                {
+                    if (board[j * ROWS + row] == opponent &&
+                        board[(j - 1) * ROWS + (row + 1)] == opponent &&
+                        board[(j - 2) * ROWS + (row + 2)] == opponent &&
+                        board[(j - 3) * ROWS + (row + 3)] == opponent)
+                    {
+                        win = true;
+                        break;
+                    }
+                }
+                if (win)
+                    break;
+            }
+
+            // If the opponent would win, place the current player's piece here to block
+            if (win)
+            {
+                board[col * ROWS + i] = player;
+                return;
+            }
+
+            // Revert the temporary move
+            board[col * ROWS + i] = 0;
+            break; // Stop checking further rows in this column
+        }
+    }
+
+    // If no winning move to block, make a random move (fallback)
+    if (board[col * ROWS] == 0)
+    { // Check if the top of the column is empty
+        for (int i = ROWS - 1; i >= 0; i--)
+        {
+            if (board[col * ROWS + i] == 0)
+            {
+                board[col * ROWS + i] = player;
+                return;
+            }
+        }
+    }
 }
 
 // Check for a win condition, returns true if player wins
@@ -123,16 +236,22 @@ int main()
     cudaMallocManaged(&board, ROWS * COLUMNS * sizeof(int));
     memset(board, 0, ROWS * COLUMNS * sizeof(int));
 
+    int maxRounds = ROWS * COLUMNS; // Maximum number of moves (6 rows * 7 columns)
+    int round = 0;
     int currentPlayer = 1;
     while (true)
     {
         if (currentPlayer == 1)
         {
+            
             randomMove<<<1, COLUMNS>>>(board, currentPlayer);
+            currentPlayer = 2;
         }
         else
         {
+            
             lookaheadMove<<<1, COLUMNS>>>(board, currentPlayer);
+            currentPlayer = 1;
         }
         cudaDeviceSynchronize();
         printBoard(board);
@@ -144,6 +263,13 @@ int main()
         }
 
         currentPlayer = 3 - currentPlayer; // Toggle between player 1 and 2
+
+        round++;
+        if (round >= maxRounds)
+        {
+            printf("Maximum rounds reached. The game is a draw!\n");
+            break;
+        }
     }
 
     cudaFree(board);
