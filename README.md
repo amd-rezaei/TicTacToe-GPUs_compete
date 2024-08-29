@@ -25,7 +25,7 @@ This project implements a **CUDA-based Tic-Tac-Toe game** where two AI players c
 
 ### 🛠 Prerequisites
 Ensure you have the following installed:
-- **CUDA Toolkit** (Tested with CUDA 11.4 or later)
+- **CUDA Toolkit** (Tested with CUDA 12.6 or later)
 - **NVIDIA GPU** with the proper driver installed
 
 ### 🖥 Compilation
