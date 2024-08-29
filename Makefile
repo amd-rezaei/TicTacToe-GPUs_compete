@@ -13,7 +13,8 @@ TARGET = $(SRC_DIR)/game
 SRCS = $(SRC_DIR)/game.cu
 
 # Compiler flags
-CFLAGS = -O2 -arch=sm_89
+# Adding -g for debugging symbols and -O0 to disable optimizations
+CFLAGS = -g -O0 -arch=sm_89
 
 # Linker flags
 LDFLAGS = 

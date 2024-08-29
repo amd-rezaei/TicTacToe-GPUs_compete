@@ -7,7 +7,7 @@
 #define ROWS 3
 #define COLUMNS 3
 
-// Kernel for Player 1: Random Strategy
+// Kernel for Player 1: Random Move Strategy
 __global__ void randomMove(int *board, int player, unsigned long long seed)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -16,11 +16,13 @@ __global__ void randomMove(int *board, int player, unsigned long long seed)
         curandState_t state;
         curand_init(seed, idx, 0, &state);
 
-        int col = curand(&state) % COLUMNS; // Random column
+        int col = curand(&state) % COLUMNS;
+        int startCol = col;
+
         while (true)
         {
             if (board[col * ROWS] == 0)
-            { // Check if the top of the column is empty
+            {
                 for (int i = ROWS - 1; i >= 0; i--)
                 {
                     if (board[col * ROWS + i] == 0)
@@ -30,8 +32,9 @@ __global__ void randomMove(int *board, int player, unsigned long long seed)
                     }
                 }
             }
-            // Move to the next column
             col = (col + 1) % COLUMNS;
+            if (col == startCol)
+                break; // Break if we've checked all columns
         }
     }
 }
@@ -51,7 +54,6 @@ __global__ void lookaheadMove(int *board, int player)
                 if (board[col * ROWS + i] == 0)
                 {
                     board[col * ROWS + i] = opponent;
-
                     bool win = false;
 
                     // Horizontal check
@@ -122,9 +124,23 @@ __global__ void lookaheadMove(int *board, int player)
     }
 }
 
+// Utility function to print the current board state
+void printBoard(const int *board)
+{
+    printf("Current Board State:\n");
+    for (int i = 0; i < ROWS; ++i)
+    {
+        for (int j = 0; j < COLUMNS; ++j)
+        {
+            printf("%d ", board[i * COLUMNS + j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
 
-// Check for a win condition, returns true if player wins
-bool checkWin(int *board, int player)
+// Utility function to check if a player has won
+bool checkWin(const int *board, int player)
 {
     // Horizontal check
     for (int row = 0; row < ROWS; row++)
@@ -167,41 +183,39 @@ bool checkWin(int *board, int player)
     return false;
 }
 
-// Display the board state
-void printBoard(int *board)
-{
-    for (int i = 0; i < ROWS; i++)
-    {
-        for (int j = 0; j < COLUMNS; j++)
-        {
-            int token = board[i * COLUMNS + j];
-            printf("%c ", (token == 0) ? '.' : (token == 1 ? 'X' : 'O'));
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
-
 int main()
 {
+    // Determine available CUDA devices
     int nDevices;
     cudaGetDeviceCount(&nDevices);
-    int device_id = 0; // Default to the first GPU
 
-    if (nDevices > 1)
+    // Assign devices for Player 1 and Player 2
+    int device_1 = 0;
+    int device_2 = 0;
+
+    if (nDevices >= 2)
     {
-        // If more than one GPU, select a random one
-        srand(time(NULL));
-        device_id = rand() % nDevices;
+        device_2 = 1;
     }
-    cudaSetDevice(device_id);
-    printf("Using GPU %d\n", device_id);
+    else
+    {
+        printf("Warning: Fewer than 2 GPUs available. Both players will use GPU 0.\n");
+    }
 
-    int *board;
-    cudaMallocManaged(&board, ROWS * COLUMNS * sizeof(int));
-    memset(board, 0, ROWS * COLUMNS * sizeof(int));
+    // Allocate and initialize boards on GPUs
+    int *board_gpu1, *board_gpu2;
+    cudaSetDevice(device_1);
+    cudaMalloc(&board_gpu1, ROWS * COLUMNS * sizeof(int));
+    cudaMemset(board_gpu1, 0, ROWS * COLUMNS * sizeof(int));
 
-    int maxRounds = ROWS * COLUMNS; // Maximum number of moves (3 rows * 3 columns)
+    cudaSetDevice(device_2);
+    cudaMalloc(&board_gpu2, ROWS * COLUMNS * sizeof(int));
+    cudaMemset(board_gpu2, 0, ROWS * COLUMNS * sizeof(int));
+
+    int host_board[ROWS * COLUMNS]; // Host memory for copying the board
+    cudaError_t err;
+
+    int maxRounds = ROWS * COLUMNS;
     int round = 0;
     int currentPlayer = 1;
 
@@ -209,26 +223,49 @@ int main()
     {
         if (currentPlayer == 1)
         {
-            randomMove<<<1, 1>>>(board, currentPlayer, time(NULL)); // Single thread
-            cudaDeviceSynchronize();
-            printBoard(board);
-            if (checkWin(board, currentPlayer))
+            unsigned long long seed = time(NULL) + round;
+            randomMove<<<1, 1>>>(board_gpu1, currentPlayer, seed);
+            err = cudaDeviceSynchronize();
+            if (err != cudaSuccess)
+            {
+                printf("CUDA error after randomMove: %s\n", cudaGetErrorString(err));
+                return -1;
+            }
+
+            // Copy board from GPU1 to host and check for win
+            cudaMemcpy(host_board, board_gpu1, ROWS * COLUMNS * sizeof(int), cudaMemcpyDeviceToHost);
+            printBoard(host_board);
+            if (checkWin(host_board, currentPlayer))
             {
                 printf("Player %d wins!\n", currentPlayer);
                 break;
             }
+
+            // Copy board from GPU1 to GPU2
+            cudaMemcpy(board_gpu2, board_gpu1, ROWS * COLUMNS * sizeof(int), cudaMemcpyDeviceToDevice);
             currentPlayer = 2;
         }
         else
         {
-            lookaheadMove<<<1, 1>>>(board, currentPlayer); // Single thread
-            cudaDeviceSynchronize();
-            printBoard(board);
-            if (checkWin(board, currentPlayer))
+            lookaheadMove<<<1, 1>>>(board_gpu2, currentPlayer);
+            err = cudaDeviceSynchronize();
+            if (err != cudaSuccess)
+            {
+                printf("CUDA error after lookaheadMove: %s\n", cudaGetErrorString(err));
+                break;
+            }
+
+            // Copy board from GPU2 to host and check for win
+            cudaMemcpy(host_board, board_gpu2, ROWS * COLUMNS * sizeof(int), cudaMemcpyDeviceToHost);
+            printBoard(host_board);
+            if (checkWin(host_board, currentPlayer))
             {
                 printf("Player %d wins!\n", currentPlayer);
                 break;
             }
+
+            // Copy board from GPU2 to GPU1
+            cudaMemcpy(board_gpu1, board_gpu2, ROWS * COLUMNS * sizeof(int), cudaMemcpyDeviceToDevice);
             currentPlayer = 1;
         }
 
@@ -240,6 +277,10 @@ int main()
         }
     }
 
-    cudaFree(board);
+    // Free GPU memory
+    cudaFree(board_gpu1);
+    cudaFree(board_gpu2);
+
+    printf("Game completed successfully.\n");
     return 0;
 }
