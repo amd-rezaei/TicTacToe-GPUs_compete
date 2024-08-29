@@ -17,7 +17,7 @@ This project implements a **CUDA-based Tic-Tac-Toe game** where two AI players c
 - [Customization](#customization)
 - [Known Issues](#known-issues)
 - [Debugging](#debugging)
-- [Authors](#authors)
+- [Author](#author)
 - [License](#license)
 
 ## 🚀 Getting Started
@@ -75,7 +75,7 @@ Ensure the board size is appropriate for the game. The win condition is tied to 
 ### 🔍 Debugging
 The game includes detailed debugging output to help understand the internal game logic.
 
-## 👥 Authors
+## 👥 Author
 Developed as part of a CUDA programming exercise to leverage GPU parallelism.
 
 ## 📜 License
