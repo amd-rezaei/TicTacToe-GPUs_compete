@@ -2,7 +2,7 @@
 # 🎮 CUDA-based Tic-Tac-Toe Game
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![CUDA Version](https://img.shields.io/badge/CUDA-11.4-blue)
+![CUDA Version](https://img.shields.io/badge/CUDA-12.6-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## 📖 Project Description
@@ -50,7 +50,21 @@ To run with a custom square board size, such as 4x4:
 ### 🖼 Example Output
 Here’s how the game looks:
 
-![Tic-Tac-Toe Example](https://link-to-screenshot.com/screenshot.png)
+#### 4x4 Board - Initial Moves
+
+![4x4 Draw Example](./output_screen/start.png)
+
+.
+
+.
+
+.
+
+#### 4x4 Board - Game Result: Draw
+
+![4x4 Draw Example](./output_screen/result.png)
+
+
 
 ### 🛠 Customization
 The game logic allows you to adjust the board size. Simply pass the desired size as a command-line argument.
