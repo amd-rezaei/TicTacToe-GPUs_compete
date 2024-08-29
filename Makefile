@@ -3,11 +3,14 @@
 # Compiler
 NVCC = nvcc
 
+# Target executable directory
+SRC_DIR = src
+
 # Target executable
-TARGET = game
+TARGET = $(SRC_DIR)/game
 
 # Source files
-SRCS = src/game.cu
+SRCS = $(SRC_DIR)/game.cu
 
 # Compiler flags
 CFLAGS = -O2 -arch=sm_89

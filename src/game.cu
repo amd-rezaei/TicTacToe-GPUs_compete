@@ -27,8 +27,8 @@ __global__ void randomMove(int *board, int player)
 // Kernel for Player 2: Lookahead Strategy
 __global__ void lookaheadMove(int *board, int player)
 {
-    int col = threadIdx.x % COLUMNS;
-    // Simple block or win strategy would be implemented here
+    // Placeholder for a more complex strategy.
+    // No need to declare 'col' if it's not being used.
 }
 
 // Check for a win condition, returns true if player wins
