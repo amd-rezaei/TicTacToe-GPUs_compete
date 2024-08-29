@@ -1,36 +1,40 @@
 
-# CUDA-based Tic-Tac-Toe Game
+# 🎮 CUDA-based Tic-Tac-Toe Game
 
-This project implements a CUDA-based Tic-Tac-Toe game (or any Connect N variant), where two AI players compete against each other using different strategies. The game is designed to run on NVIDIA GPUs using the CUDA programming model. This project demonstrates the use of basic AI strategies and GPU computation to manage game state and determine player moves.
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![CUDA Version](https://img.shields.io/badge/CUDA-11.4-blue)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## Project Description
+## 📖 Project Description
+This project implements a **CUDA-based Tic-Tac-Toe game** where two AI players compete using different strategies. The game leverages NVIDIA GPUs for parallel computation, demonstrating simple AI-driven gameplay.
 
-The game supports two AI strategies:
-- **Random Strategy (Player 1)**: Chooses a column randomly to place the token.
-- **Lookahead Strategy (Player 2)**: Implements a basic lookahead to block the opponent or connect a specified number of tokens (based on the board's size).
+## 📑 Table of Contents
+- [Project Description](#project-description)
+- [Getting Started](#getting-started)
+- [Compilation](#compilation)
+- [Execution](#execution)
+- [Example Output](#example-output)
+- [Customization](#customization)
+- [Known Issues](#known-issues)
+- [Debugging](#debugging)
+- [Authors](#authors)
+- [License](#license)
 
-### Key Features
-- **Dynamic GPU Selection**: The game checks the available CUDA-enabled GPUs. If two or more GPUs are available, it assigns one to each player. If fewer than two GPUs are available, both players use the first GPU.
-- **Flexible Board Size**: The board size can be specified via a command-line argument. The game supports square board sizes (e.g., 3x3, 4x4). The win condition dynamically adapts to the size of the board.
+## 🚀 Getting Started
 
-## Getting Started
-
-### Prerequisites
-
+### 🛠 Prerequisites
 Ensure you have the following installed:
-- CUDA Toolkit (Tested with CUDA 11.4 or later)
-- NVIDIA GPU with the proper driver installed
+- **CUDA Toolkit** (Tested with CUDA 11.4 or later)
+- **NVIDIA GPU** with the proper driver installed
 
-### Compilation
-
-Navigate to the project directory and compile the code using the following command:
+### 🖥 Compilation
+Navigate to the project directory and compile the code using:
 
 ```bash
 nvcc -o tic_tac_toe game.cu
 ```
 
-### Execution
-
+### 🕹 Execution
 To run the game with a default 3x3 board:
 
 ```bash
@@ -43,50 +47,22 @@ To run with a custom square board size, such as 4x4:
 ./tic_tac_toe 4
 ```
 
-### Example Output
+### 🖼 Example Output
+Here’s how the game looks:
 
-Here’s an example of how the output might look for a 4x4 board:
+![Tic-Tac-Toe Example](https://link-to-screenshot.com/screenshot.png)
 
-```plaintext
-Using a 4x4 board.
-Player 1 move completed
-Board copied from GPU1 to host
-Current Board State:
-0 0 0 0
-0 0 0 0
-0 0 0 0
-1 0 0 0
+### 🛠 Customization
+The game logic allows you to adjust the board size. Simply pass the desired size as a command-line argument.
 
-Player changed to 2
-Player 2 move completed
-Current Board State:
-0 0 0 0
-0 0 0 0
-0 0 0 0
-1 2 0 0
+### ⚠ Known Issues
+Ensure the board size is appropriate for the game. The win condition is tied to the number of rows and columns.
 
-Player changed to 1
-...
-Player 1 wins!
-Game completed successfully.
-```
+### 🔍 Debugging
+The game includes detailed debugging output to help understand the internal game logic.
 
-### Customization
+## 👥 Authors
+Developed as part of a CUDA programming exercise to leverage GPU parallelism.
 
-The game logic allows you to easily adjust the board size, making the game more versatile for different configurations. Simply pass the desired size as a command-line argument.
-
-### Known Issues
-
-- Ensure the board size is appropriate for the number of moves you want to play. The win condition is tied to the number of rows and columns, so a board like 4x4 requires four tokens in a row, column, or diagonal to win.
-
-### Debugging
-
-The game includes detailed debugging output that shows when and where a player wins. This output is helpful for understanding the internal game logic and ensuring correct behavior.
-
-## Authors
-
-This project was developed as part of a CUDA programming exercise. The primary focus was on leveraging GPU parallelism for simple AI-driven gameplay.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+## 📜 License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
