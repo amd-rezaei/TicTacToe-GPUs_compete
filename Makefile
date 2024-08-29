@@ -10,7 +10,7 @@ TARGET = game
 SRCS = src/game.cu
 
 # Compiler flags
-CFLAGS = -O2 -arch=sm_30
+CFLAGS = -O2 -arch=sm_89
 
 # Linker flags
 LDFLAGS = 
