@@ -14,15 +14,29 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install CUDA Toolkit
-      uses: Jimver/cuda-toolkit@v0.2.16
-      with:
-        cuda: "12.4.0"  
-        sub-packages: '["nvcc"]'
-        method: network  
-        use-github-cache: true  
-        use-local-cache: true  
-        log-file-suffix: log.txt  
+    - name: Install CUDA Toolkit 12.6.1
+      run: |
+        # Download and set up the CUDA repository pin
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
+        sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
+        
+        # Download and install the local CUDA repo package
+        wget https://developer.download.nvidia.com/compute/cuda/12.6.1/local_installers/cuda-repo-ubuntu2204-12-6-local_12.6.1-560.35.03-1_amd64.deb
+        sudo dpkg -i cuda-repo-ubuntu2204-12-6-local_12.6.1-560.35.03-1_amd64.deb
+        
+        # Add the CUDA GPG keyring
+        sudo cp /var/cuda-repo-ubuntu2204-12-6-local/cuda-*-keyring.gpg /usr/share/keyrings/
+        
+        # Update the package list and install the CUDA Toolkit
+        sudo apt-get update
+        sudo apt-get -y install cuda-toolkit-12-6
+
+    - name: Install NVIDIA Driver (Open Kernel Module)
+      run: sudo apt-get install -y nvidia-open
+
+    # Or install the legacy NVIDIA driver instead
+    # - name: Install NVIDIA Driver (Legacy Kernel Module)
+    #   run: sudo apt-get install -y cuda-drivers
 
     - name: Compile the CUDA program
       run: |
