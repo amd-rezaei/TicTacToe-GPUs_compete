@@ -39,7 +39,6 @@ __global__ void randomMove(int *board, int player, int rows, int columns, unsign
     }
 }
 
-// Kernel for Player 2: Tries to block the opponent's winning move
 __global__ void lookaheadMove(int *board, int player, int rows, int columns)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -53,47 +52,77 @@ __global__ void lookaheadMove(int *board, int player, int rows, int columns)
             {
                 if (board[col * rows + i] == 0)
                 {
+                    // Simulate opponent's move
                     board[col * rows + i] = opponent;
                     bool win = false;
 
-                    // Check if opponent would win
+                    // Horizontal check
                     for (int row = 0; row < rows; row++)
                     {
-                        if (board[row * columns] == opponent &&
-                            board[row * columns + 1] == opponent &&
-                            board[row * columns + 2] == opponent)
+                        if (col <= columns - 3 &&
+                            board[row * columns + col] == opponent &&
+                            board[row * columns + col + 1] == opponent &&
+                            board[row * columns + col + 2] == opponent)
                         {
                             win = true;
                         }
                     }
 
                     // Vertical check
-                    for (int colcnt = 0; colcnt < columns; colcnt++)
+                    for (int row = 0; row <= rows - 3; row++)
                     {
-                        if (board[colcnt] == opponent &&
-                            board[colcnt + columns] == opponent &&
-                            board[colcnt + 2 * columns] == opponent)
+                        if (board[row * columns + col] == opponent &&
+                            board[(row + 1) * columns + col] == opponent &&
+                            board[(row + 2) * columns + col] == opponent)
                         {
                             win = true;
                         }
                     }
 
-                    // Diagonal checks
-                    if (board[0] == opponent && board[4] == opponent && board[8] == opponent)
+                    // Diagonal check from top-left to bottom-right (main diagonal)
+                    if (col == 0 && i == 0)
                     {
-                        win = true;
-                    }
-                    if (board[2] == opponent && board[4] == opponent && board[6] == opponent)
-                    {
-                        win = true;
+                        bool diagonal = true;
+                        for (int row_a = 0; row_a < rows; row_a++)
+                        {
+                            if (board[row_a * columns + row_a] != opponent)
+                            {
+                                diagonal = false;
+                                break;
+                            }
+                        }
+                        if (diagonal)
+                        {
+                            win = true;
+                        }
                     }
 
+                    // Diagonal check from top-right to bottom-left (anti-diagonal)
+                    if (col == columns - 1 && i == 0)
+                    {
+                        bool diagonal = true;
+                        for (int row_a = 0; row_a < rows; row_a++)
+                        {
+                            if (board[row_a * columns + (columns - 1 - row_a)] != opponent)
+                            {
+                                diagonal = false;
+                                break;
+                            }
+                        }
+                        if (diagonal)
+                        {
+                            win = true;
+                        }
+                    }
+
+                    // If the opponent can win, block the move
                     if (win)
                     {
                         board[col * rows + i] = player;
                         return;
                     }
 
+                    // Undo the move
                     board[col * rows + i] = 0;
                     break;
                 }
@@ -103,15 +132,12 @@ __global__ void lookaheadMove(int *board, int player, int rows, int columns)
         // No block needed, make a move
         for (int col = 0; col < columns; col++)
         {
-            if (board[col * rows] == 0)
+            for (int i = rows - 1; i >= 0; i--)
             {
-                for (int i = rows - 1; i >= 0; i--)
+                if (board[col * rows + i] == 0)
                 {
-                    if (board[col * rows + i] == 0)
-                    {
-                        board[col * rows + i] = player;
-                        return;
-                    }
+                    board[col * rows + i] = player;
+                    return;
                 }
             }
         }
