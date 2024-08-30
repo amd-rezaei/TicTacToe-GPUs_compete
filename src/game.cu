@@ -4,11 +4,10 @@
 #include <curand_kernel.h>
 #include <time.h>
 
-// Default values
 #define DEFAULT_ROWS 3
 #define DEFAULT_COLUMNS 3
 
-// Kernel for Player 1: Random Move Strategy
+// Kernel for Player 1: Makes a random move
 __global__ void randomMove(int *board, int player, int rows, int columns, unsigned long long seed)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -35,12 +34,12 @@ __global__ void randomMove(int *board, int player, int rows, int columns, unsign
             }
             col = (col + 1) % columns;
             if (col == startCol)
-                break; // Break if we've checked all columns
+                break; // All columns checked
         }
     }
 }
 
-// Kernel for Player 2: Lookahead Strategy
+// Kernel for Player 2: Tries to block the opponent's winning move
 __global__ void lookaheadMove(int *board, int player, int rows, int columns)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -57,7 +56,7 @@ __global__ void lookaheadMove(int *board, int player, int rows, int columns)
                     board[col * rows + i] = opponent;
                     bool win = false;
 
-                    // Horizontal check
+                    // Check if opponent would win
                     for (int row = 0; row < rows; row++)
                     {
                         if (board[row * columns] == opponent &&
@@ -79,18 +78,12 @@ __global__ void lookaheadMove(int *board, int player, int rows, int columns)
                         }
                     }
 
-                    // Diagonal check (top-left to bottom-right)
-                    if (board[0] == opponent &&
-                        board[4] == opponent &&
-                        board[8] == opponent)
+                    // Diagonal checks
+                    if (board[0] == opponent && board[4] == opponent && board[8] == opponent)
                     {
                         win = true;
                     }
-
-                    // Diagonal check (top-right to bottom-left)
-                    if (board[2] == opponent &&
-                        board[4] == opponent &&
-                        board[6] == opponent)
+                    if (board[2] == opponent && board[4] == opponent && board[6] == opponent)
                     {
                         win = true;
                     }
@@ -107,7 +100,7 @@ __global__ void lookaheadMove(int *board, int player, int rows, int columns)
             }
         }
 
-        // If no winning move to block, make a random move
+        // No block needed, make a move
         for (int col = 0; col < columns; col++)
         {
             if (board[col * rows] == 0)
@@ -125,15 +118,22 @@ __global__ void lookaheadMove(int *board, int player, int rows, int columns)
     }
 }
 
-// Utility function to print the current board state
 void printBoard(const int *board, int rows, int columns)
 {
-    printf("Current Board State:\n");
+    printf("Board:\n");
     for (int i = 0; i < rows; ++i)
     {
         for (int j = 0; j < columns; ++j)
         {
-            printf("%d ", board[i * columns + j]);
+            if (board[i * columns + j] == 1){
+                printf("%s ", "O");
+            }
+            else if (board[i * columns + j] == 2){
+                printf("%s ", "X");
+            }
+            else{
+                printf("%s ", "-");
+            }
         }
         printf("\n");
     }
@@ -142,9 +142,8 @@ void printBoard(const int *board, int rows, int columns)
 
 bool checkWin(const int *board, int player, int rows, int columns)
 {
-    int winCondition = rows; // Set win condition to the number of rows for all checks
+    int winCondition = rows;
 
-    // Horizontal check
     for (int row = 0; row < rows; row++)
     {
         for (int col = 0; col <= columns - winCondition; col++)
@@ -160,13 +159,12 @@ bool checkWin(const int *board, int player, int rows, int columns)
             }
             if (win)
             {
-                printf("Player %d wins with a horizontal line starting at row %d, column %d\n", player, row, col);
+                printf("Player %d wins horizontally at row %d, column %d\n", player, row, col);
                 return true;
             }
         }
     }
 
-    // Vertical check
     for (int col = 0; col < columns; col++)
     {
         for (int row = 0; row <= rows - winCondition; row++)
@@ -182,13 +180,12 @@ bool checkWin(const int *board, int player, int rows, int columns)
             }
             if (win)
             {
-                printf("Player %d wins with a vertical line starting at row %d, column %d\n", player, row, col);
+                printf("Player %d wins vertically at row %d, column %d\n", player, row, col);
                 return true;
             }
         }
     }
 
-    // Diagonal check (top-left to bottom-right)
     for (int row = 0; row <= rows - winCondition; row++)
     {
         for (int col = 0; col <= columns - winCondition; col++)
@@ -204,13 +201,12 @@ bool checkWin(const int *board, int player, int rows, int columns)
             }
             if (win)
             {
-                printf("Player %d wins with a diagonal (top-left to bottom-right) line starting at row %d, column %d\n", player, row, col);
+                printf("Player %d wins diagonally (\\) at row %d, column %d\n", player, row, col);
                 return true;
             }
         }
     }
 
-    // Diagonal check (top-right to bottom-left)
     for (int row = 0; row <= rows - winCondition; row++)
     {
         for (int col = winCondition - 1; col < columns; col++)
@@ -226,7 +222,7 @@ bool checkWin(const int *board, int player, int rows, int columns)
             }
             if (win)
             {
-                printf("Player %d wins with a diagonal (top-right to bottom-left) line starting at row %d, column %d\n", player, row, col);
+                printf("Player %d wins diagonally (/) at row %d, column %d\n", player, row, col);
                 return true;
             }
         }
@@ -246,26 +242,19 @@ int main(int argc, char *argv[])
         columns = atoi(argv[1]);
     }
 
-    printf("Using a %dx%d board.\n", rows, columns);
+    printf("Board size: %dx%d\n", rows, columns);
 
-    // Determine available CUDA devices
     int nDevices;
     cudaGetDeviceCount(&nDevices);
 
-    // Assign devices for Player 1 and Player 2
     int device_1 = 0;
-    int device_2 = 0;
+    int device_2 = (nDevices >= 2) ? 1 : 0;
 
-    if (nDevices >= 2)
+    if (nDevices < 2)
     {
-        device_2 = 1;
-    }
-    else
-    {
-        printf("Warning: Fewer than 2 GPUs available. Both players will use GPU 0.\n");
+        printf("Warning: Only one GPU available.\n");
     }
 
-    // Allocate and initialize boards on GPUs
     int *board_gpu1, *board_gpu2;
     cudaSetDevice(device_1);
     cudaMalloc(&board_gpu1, rows * columns * sizeof(int));
@@ -275,7 +264,7 @@ int main(int argc, char *argv[])
     cudaMalloc(&board_gpu2, rows * columns * sizeof(int));
     cudaMemset(board_gpu2, 0, rows * columns * sizeof(int));
 
-    int *host_board = (int *)malloc(rows * columns * sizeof(int)); // Host memory for copying the board
+    int *host_board = (int *)malloc(rows * columns * sizeof(int));
     cudaError_t err;
 
     int maxRounds = rows * columns;
@@ -291,11 +280,10 @@ int main(int argc, char *argv[])
             err = cudaDeviceSynchronize();
             if (err != cudaSuccess)
             {
-                printf("CUDA error after randomMove: %s\n", cudaGetErrorString(err));
+                printf("CUDA error in randomMove: %s\n", cudaGetErrorString(err));
                 return -1;
             }
 
-            // Copy board from GPU1 to host and check for win
             cudaMemcpy(host_board, board_gpu1, rows * columns * sizeof(int), cudaMemcpyDeviceToHost);
             printBoard(host_board, rows, columns);
             if (checkWin(host_board, currentPlayer, rows, columns))
@@ -304,7 +292,6 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            // Copy board from GPU1 to GPU2
             cudaMemcpy(board_gpu2, board_gpu1, rows * columns * sizeof(int), cudaMemcpyDeviceToDevice);
             currentPlayer = 2;
         }
@@ -314,11 +301,10 @@ int main(int argc, char *argv[])
             err = cudaDeviceSynchronize();
             if (err != cudaSuccess)
             {
-                printf("CUDA error after lookaheadMove: %s\n", cudaGetErrorString(err));
+                printf("CUDA error in lookaheadMove: %s\n", cudaGetErrorString(err));
                 break;
             }
 
-            // Copy board from GPU2 to host and check for win
             cudaMemcpy(host_board, board_gpu2, rows * columns * sizeof(int), cudaMemcpyDeviceToHost);
             printBoard(host_board, rows, columns);
             if (checkWin(host_board, currentPlayer, rows, columns))
@@ -327,7 +313,6 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            // Copy board from GPU2 to GPU1
             cudaMemcpy(board_gpu1, board_gpu2, rows * columns * sizeof(int), cudaMemcpyDeviceToDevice);
             currentPlayer = 1;
         }
@@ -335,16 +320,15 @@ int main(int argc, char *argv[])
         round++;
         if (round >= maxRounds)
         {
-            printf("Maximum rounds reached. The game is a draw!\n");
+            printf("Draw! No moves left.\n");
             break;
         }
     }
 
-    // Free GPU and host memory
     cudaFree(board_gpu1);
     cudaFree(board_gpu2);
     free(host_board);
 
-    printf("Game completed successfully.\n");
+    printf("Game over.\n");
     return 0;
 }
