@@ -14,14 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Compile the CUDA program
-      run: |
-        cd src
-        nvcc -o game game.cu
-
-    - name: Run CUDA program
-      run: ./src/game
-
     - name: Install CUDA Toolkit
       uses: Jimver/cuda-toolkit@v0.2.16
       with:
@@ -31,3 +23,11 @@ jobs:
         use-github-cache: true
         use-local-cache: true
         log-file-suffix: log.txt
+
+    - name: Compile the CUDA program
+      run: |
+        cd src
+        nvcc -o game game.cu
+
+    - name: Run CUDA program
+      run: ./src/game
