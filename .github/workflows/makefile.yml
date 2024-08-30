@@ -17,7 +17,7 @@ jobs:
     - name: Install CUDA Toolkit
       uses: Jimver/cuda-toolkit@v0.2.16
       with:
-        cuda: "11.7.0"  # Use a supported CUDA version
+        cuda: "11.0.0"  # Use a supported CUDA version
         sub-packages: '["nvcc"]'  # Corrected package name
         method: network
         use-github-cache: true
