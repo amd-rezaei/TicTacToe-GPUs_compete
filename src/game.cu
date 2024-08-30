@@ -46,86 +46,91 @@ __global__ void lookaheadMove(int *board, int player, int rows, int columns)
     {
         int opponent = 3 - player;
 
+        // Check for a potential win on the main diagonal (top-left to bottom-right)
+        int main_diag_count = 0;
+        int empty_main_diag_idx = -1;
+        for (int diag = 0; diag < rows; diag++)
+        {
+            int index = diag * columns + diag;
+            if (board[index] == opponent)
+            {
+                main_diag_count++;
+            }
+            else if (board[index] == 0)
+            {
+                empty_main_diag_idx = index;
+            }
+        }
+        if (main_diag_count == rows - 1 && empty_main_diag_idx != -1)
+        {
+            board[empty_main_diag_idx] = player;
+            return;
+        }
+
+        // Check for a potential win on the anti-diagonal (top-right to bottom-left)
+        int anti_diag_count = 0;
+        int empty_anti_diag_idx = -1;
+        for (int diag = 0; diag < rows; diag++)
+        {
+            int index = diag * columns + (columns - 1 - diag);
+            if (board[index] == opponent)
+            {
+                anti_diag_count++;
+            }
+            else if (board[index] == 0)
+            {
+                empty_anti_diag_idx = index;
+            }
+        }
+        if (anti_diag_count == rows - 1 && empty_anti_diag_idx != -1)
+        {
+            board[empty_anti_diag_idx] = player;
+            return;
+        }
+
+        // Check for a potential horizontal win
+        for (int row = 0; row < rows; row++)
+        {
+            int opponent_count = 0;
+            int empty_col_idx = -1;
+            for (int col = 0; col < columns; col++)
+            {
+                if (board[row * columns + col] == opponent)
+                {
+                    opponent_count++;
+                }
+                else if (board[row * columns + col] == 0)
+                {
+                    empty_col_idx = col;
+                }
+            }
+            if (opponent_count == columns - 1 && empty_col_idx != -1)
+            {
+                board[row * columns + empty_col_idx] = player;
+                return;
+            }
+        }
+
+        // Check for a potential vertical win
         for (int col = 0; col < columns; col++)
         {
-            for (int i = rows - 1; i >= 0; i--)
+            int opponent_count = 0;
+            int empty_row_idx = -1;
+            for (int row = 0; row < rows; row++)
             {
-                if (board[col * rows + i] == 0)
+                if (board[row * columns + col] == opponent)
                 {
-                    // Simulate opponent's move
-                    board[col * rows + i] = opponent;
-                    bool win = false;
-
-                    // Horizontal check
-                    for (int row = 0; row < rows; row++)
-                    {
-                        if (col <= columns - 3 &&
-                            board[row * columns + col] == opponent &&
-                            board[row * columns + col + 1] == opponent &&
-                            board[row * columns + col + 2] == opponent)
-                        {
-                            win = true;
-                        }
-                    }
-
-                    // Vertical check
-                    for (int row = 0; row <= rows - 3; row++)
-                    {
-                        if (board[row * columns + col] == opponent &&
-                            board[(row + 1) * columns + col] == opponent &&
-                            board[(row + 2) * columns + col] == opponent)
-                        {
-                            win = true;
-                        }
-                    }
-
-                    // Diagonal check from top-left to bottom-right (main diagonal)
-                    if (col == 0 && i == 0)
-                    {
-                        bool diagonal = true;
-                        for (int row_a = 0; row_a < rows; row_a++)
-                        {
-                            if (board[row_a * columns + row_a] != opponent)
-                            {
-                                diagonal = false;
-                                break;
-                            }
-                        }
-                        if (diagonal)
-                        {
-                            win = true;
-                        }
-                    }
-
-                    // Diagonal check from top-right to bottom-left (anti-diagonal)
-                    if (col == columns - 1 && i == 0)
-                    {
-                        bool diagonal = true;
-                        for (int row_a = 0; row_a < rows; row_a++)
-                        {
-                            if (board[row_a * columns + (columns - 1 - row_a)] != opponent)
-                            {
-                                diagonal = false;
-                                break;
-                            }
-                        }
-                        if (diagonal)
-                        {
-                            win = true;
-                        }
-                    }
-
-                    // If the opponent can win, block the move
-                    if (win)
-                    {
-                        board[col * rows + i] = player;
-                        return;
-                    }
-
-                    // Undo the move
-                    board[col * rows + i] = 0;
-                    break;
+                    opponent_count++;
                 }
+                else if (board[row * columns + col] == 0)
+                {
+                    empty_row_idx = row;
+                }
+            }
+            if (opponent_count == rows - 1 && empty_row_idx != -1)
+            {
+                board[empty_row_idx * columns + col] = player;
+                return;
             }
         }
 
