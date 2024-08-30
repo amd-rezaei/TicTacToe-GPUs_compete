@@ -1,0 +1,39 @@
+name: Makefile CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure project
+      run: ./configure
+
+    - name: Install dependencies
+      run: make
+
+    - name: Run check
+      run: make check
+
+    - name: Run distcheck
+      run: make distcheck
+
+    - name: Install CUDA Toolkit
+      uses: Jimver/cuda-toolkit@v0.2.16
+      with:
+        cuda: "12.6.0"  # specify the CUDA version if needed, or remove if the default is fine
+        sub-packages: '["nvcc", "visual_studio_integration"]'  # specify any sub-packages, adjust as needed
+        non-cuda-sub-packages: '["libcublas", "libcufft"]'  # specify any non-CUDA sub-packages, adjust as needed
+        method: network  # choose 'local' or 'network' based on your requirement
+        linux-local-args: '["--toolkit", "--samples"]'  # arguments for Linux local install method, adjust if necessary
+        use-github-cache: true  # set to false if you do not want to use GitHub cache
+        use-local-cache: true  # set to false if you do not want to use local cache
+        log-file-suffix: log.txt  # specify suffix for the log file if needed
