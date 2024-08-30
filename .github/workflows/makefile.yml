@@ -18,7 +18,7 @@ jobs:
       uses: Jimver/cuda-toolkit@v0.2.16
       with:
         cuda: "12.4.0"  
-        sub-packages: "nvcc"  
+        sub-packages: '["nvcc"]'
         method: network  
         use-github-cache: true  
         use-local-cache: true  
