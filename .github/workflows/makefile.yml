@@ -17,12 +17,12 @@ jobs:
     - name: Install CUDA Toolkit
       uses: Jimver/cuda-toolkit@v0.2.16
       with:
-        cuda: "11.0.0"  # Use a supported CUDA version
-        sub-packages: '["nvcc"]'  # Corrected package name
-        method: network
-        use-github-cache: true
-        use-local-cache: true
-        log-file-suffix: log.txt
+        cuda: "12.4.0"  # Specifying the CUDA version to match your local setup
+        sub-packages: '["nvcc", "curand-dev"]'  # Including necessary sub-packages
+        method: network  # Using network method for installation
+        use-github-cache: true  # Enabling GitHub cache for faster builds
+        use-local-cache: true  # Enabling local cache for faster installations
+        log-file-suffix: log.txt  # Setting a suffix for log files
 
     - name: Compile the CUDA program
       run: |
