@@ -7,7 +7,7 @@
 
 ## 📖 Project Description
 
-This project implements a **CUDA-based Tic-Tac-Toe game** where two players use predefined strategies to compete. The game leverages NVIDIA GPUs for multigpu computation, showcasing basic strategy-driven gameplay.
+This project implements a **CUDA-based Tic-Tac-Toe game** where two players use predefined strategies to compete. The game leverages NVIDIA GPUs for multi-GPU computation, showcasing basic strategy-driven gameplay.
 
 ## 📑 Table of Contents
 - [Project Description](#-project-description)
